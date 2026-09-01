@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MAPCLUB Postal Code Improvement - Prototype</title>
+<meta name="description" content="Clickable prototype for the MAPCLUB postal code improvement: cascading address selection and customer remediation flow.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
+<style>
+:root{
+  --red:#C4122E; --cta:#A8172A; --txt:#1A1A1A; --mut:#6E6E6E; --faint:#9B9B9B;
+  --brd:#E6E6E6; --line:#EFEFEF; --alert-bg:#FDF2F3; --alert-brd:#F1C7CE; --alert-tx:#A50E26;
+  --ok:#1E874B; --ok-bg:#EFF7F1; --ok-brd:#CDE7D6; --shell:#22242A; --shell2:#2C2F37;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'Nunito Sans','Segoe UI',system-ui,sans-serif;background:#15171B;color:var(--txt);-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+a{color:var(--red);text-decoration:none}
+
+/* ---------- prototype chrome ---------- */
+.top{position:sticky;top:0;z-index:50;background:var(--shell);border-bottom:1px solid #34373F;padding:14px 22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.brand{color:#fff;font-size:15px;font-weight:700;letter-spacing:.2px}
+.brand span{color:#8C919C;font-weight:400;margin-left:9px;font-size:13px}
+.tabs{display:flex;gap:6px;background:var(--shell2);padding:4px;border-radius:999px}
+.tab{border:none;background:transparent;color:#A9AEB9;font-size:13.5px;font-weight:600;padding:8px 16px;border-radius:999px}
+.tab[aria-selected="true"]{background:var(--red);color:#fff}
+.spacer{flex-grow:1}
+.ghost{border:1px solid #454952;background:transparent;color:#C3C8D2;font-size:13px;font-weight:600;padding:8px 15px;border-radius:999px}
+.ghost:hover{border-color:#6B7180;color:#fff}
+.stage{padding:34px 22px 70px;display:flex;justify-content:center}
+.col{width:100%;max-width:1180px}
+.hint{color:#8C919C;font-size:13.5px;line-height:1.6;max-width:640px;margin:0 auto 26px;text-align:center}
+.hint b{color:#D7DBE3;font-weight:700}
+.segrow{display:flex;justify-content:center;gap:8px;margin-bottom:26px;flex-wrap:wrap}
+.seg{border:1px solid #3C4049;background:var(--shell2);color:#B7BCC6;font-size:13px;font-weight:600;padding:9px 17px;border-radius:999px}
+.seg[aria-pressed="true"]{background:#fff;color:#15171B;border-color:#fff}
+.caption{color:#7B808B;font-size:12px;text-align:center;margin-top:14px;letter-spacing:.3px}
+
+/* ---------- surfaces ---------- */
+.modal{width:100%;max-width:600px;margin:0 auto;background:#fff;border-radius:28px;box-shadow:0 24px 60px rgba(0,0,0,.45);overflow:hidden;position:relative}
+.phone{width:390px;background:#fff;border-radius:34px;box-shadow:0 24px 60px rgba(0,0,0,.45);overflow:hidden;position:relative;display:flex;flex-direction:column;height:812px}
+.phonewrap{display:flex;justify-content:center;gap:34px;flex-wrap:wrap}
+.pbody{flex-grow:1;overflow-y:auto;overscroll-behavior:contain}
+.pbody::-webkit-scrollbar{width:0}
+
+/* ---------- shared form bits ---------- */
+.mhdr{display:flex;align-items:center;gap:16px;padding:24px 30px 16px}
+.mtitle{font-size:22px;font-weight:700;flex-grow:1;letter-spacing:-.2px}
+.iconbtn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;padding:0;color:var(--txt)}
+.mkicker{padding:0 30px 14px;font-size:11.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--red)}
+.mbody{padding:6px 30px 4px;display:flex;flex-direction:column;gap:20px}
+.lbl{font-size:14px;font-weight:600;color:#2B2B2B;margin-bottom:8px}
+.lbl.off{color:#B4B4B4}
+.ta{width:100%;border:1px solid #D9D9D9;border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.5;min-height:76px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 22px}
+.sel{width:100%;height:52px;border:1px solid #D9D9D9;border-radius:10px;padding:0 14px 0 16px;background:#fff;display:flex;align-items:center;gap:8px;text-align:left}
+.sel:hover{border-color:#B0B0B0}
+.sel.off{border-color:#E8E8E8;background:#FAFAFA;cursor:not-allowed}
+.sel.off:hover{border-color:#E8E8E8}
+.selv{flex-grow:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#2B2B2B}
+.selv.ph{color:#A8A8A8}
+.ro{width:100%;height:52px;border:1px solid #E0E0E0;border-radius:10px;padding:0 14px 0 16px;background:#F4F4F4;display:flex;align-items:center;gap:8px}
+.rov{flex-grow:1;font-size:15px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.fh{font-size:12px;line-height:1.45;margin-top:7px;display:flex;align-items:flex-start;gap:6px}
+.fh.g{color:var(--ok)} .fh.n{color:#8E8E8E} .fh.r{color:var(--red)}
+.rule{height:1px;background:var(--line)}
+.locT{font-size:15px;font-weight:600} .locS{font-size:13px;color:var(--mut);margin-top:3px}
+.locA{font-size:13px;color:#A2A2A2;margin-top:8px;line-height:1.45}
+.chkrow{display:flex;align-items:center;gap:13px;padding:4px 0 2px}
+.chk{width:24px;height:24px;border-radius:7px;background:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mfoot{padding:16px 30px 26px}
+.cta{width:100%;height:60px;border:none;border-radius:999px;background:var(--cta);color:#fff;font-size:17px;font-weight:700}
+.cta:disabled{background:#E4C0C6;cursor:not-allowed}
+
+/* sheet */
+.sheet{position:absolute;inset:74px 0 0;background:#fff;border-top:1px solid var(--line);display:flex;flex-direction:column;z-index:9}
+.sheet.p{inset:66px 0 0}
+.shdr{display:flex;align-items:center;gap:12px;padding:18px 26px 12px}
+.stitle{font-size:16px;font-weight:700;flex-grow:1}
+.swrap{padding:0 26px 12px;position:relative}
+.sinput{width:100%;height:46px;border:1px solid #D9D9D9;border-radius:10px;padding:0 14px 0 40px;font-size:14px;outline:none}
+.sinput:focus{border-color:var(--red)}
+.sic{position:absolute;left:40px;top:14px}
+.slist{flex-grow:1;overflow-y:auto;padding:0 14px 18px}
+.opt{width:100%;display:flex;align-items:center;gap:12px;padding:13px 12px;border:none;background:transparent;border-radius:10px;text-align:left}
+.opt:hover{background:#F6F6F6}
+.optm{font-size:14px;font-weight:600;color:#2B2B2B}
+.opts{font-size:12px;color:#8E8E8E;margin-top:2px;line-height:1.45}
+.optc{font-size:13px;font-weight:700;color:var(--mut);letter-spacing:.4px;font-variant-numeric:tabular-nums}
+.sempty{padding:26px 12px;font-size:13px;color:var(--faint);text-align:center}
+
+/* ---------- mobile screens ---------- */
+.phdr{display:flex;align-items:center;gap:14px;padding:18px;border-bottom:1px solid var(--line);flex-shrink:0}
+.pht{font-size:20px;font-weight:600;flex-grow:1}
+.ptabs{display:flex;flex-shrink:0}
+.ptab{flex-grow:1;text-align:center;padding:13px 0 11px;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--mut);background:none;border-left:none;border-right:none;border-top:none;position:relative}
+.ptab[aria-selected="true"]{border-bottom:2.5px solid var(--red);color:var(--red);font-weight:700}
+.dot{position:absolute;top:9px;margin-left:3px;width:7px;height:7px;border-radius:50%;background:var(--red)}
+.card{border:1px solid var(--brd);border-radius:14px;padding:15px 16px}
+.card.bad{border:1.5px solid var(--alert-brd)}
+.card.ok{border:1px solid var(--ok-brd);background:var(--ok-bg)}
+.alert{border:1px solid var(--alert-brd);background:var(--alert-bg);border-radius:14px;padding:14px 15px;display:flex;gap:11px;align-items:flex-start}
+.aT{font-size:14.5px;font-weight:700;color:var(--alert-tx);line-height:1.35}
+.aB{font-size:13px;color:#6F2733;line-height:1.55;margin-top:5px}
+.pillbtn{height:42px;padding:0 20px;border:none;border-radius:999px;background:var(--cta);color:#fff;font-size:14px;font-weight:700}
+.pillbtn.full{width:100%}
+.pillbtn.outline{background:#fff;color:var(--txt);border:1px solid var(--brd)}
+.badge{position:absolute;top:-6px;right:-8px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.chip{background:#EAF1FB;color:#2C6BC4;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap}
+.issue{display:flex;align-items:flex-start;gap:8px;margin-top:11px;background:var(--alert-bg);border-radius:9px;padding:10px 11px}
+.issueT{font-size:12.5px;color:var(--alert-tx);line-height:1.5;font-weight:600}
+.okrow{display:flex;align-items:center;gap:8px;margin-top:11px}
+.okT{font-size:12.5px;color:var(--ok);font-weight:600}
+.acts{display:flex;align-items:center;gap:10px;margin-top:13px}
+.acts a{font-size:14px;font-weight:600}
+.sep{color:#DDD}
+.bar{flex-grow:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden}
+.barf{height:100%;background:var(--ok);transition:width .35s ease}
+.grey{height:8px;background:#F1F1F1}
+.pfoot{border-top:1px solid #EBEBEB;padding:14px 18px 20px;background:#fff;flex-shrink:0}
+.toast{position:absolute;left:16px;right:16px;bottom:18px;background:#1E874B;color:#fff;border-radius:12px;padding:13px 16px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:20;animation:rise .3s ease}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.navwrap{display:flex;gap:8px;justify-content:center;margin-bottom:22px;flex-wrap:wrap}
+@media(max-width:900px){.phone{width:100%;max-width:390px}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand">MAPCLUB Postal Code Improvement<span>Prototype</span></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-view="form">Form Alamat</button>
+    <button class="tab" role="tab" data-view="flow">Alur Notifikasi</button>
+  </div>
+  <div class="spacer"></div>
+  <button class="ghost" id="reset">Reset</button>
+</div>
+
+<div class="stage"><div class="col" id="root"></div></div>
+
+<script>
+const AREA = {"DKI Jakarta":{"Kota Jakarta Barat":{"Grogol Petamburan":[["Grogol","11450"],["Jelambar","11460"],["Jelambar Baru","11460"],["Tanjung Duren Selatan","11470"],["Tanjung Duren Utara","11470"],["Tomang","11440"],["Wijaya Kusuma","11460"]],"Kalideres":[["Kalideres","11840"],["Kamal","11810"],["Pegadungan","11830"],["Semanan","11850"],["Tegal Alur","11820"]],"Kebon Jeruk":[["Duri Kepa","11510"],["Kebon Jeruk","11530"],["Kedoya Selatan","11520"],["Kedoya Utara","11520"],["Kelapa Dua","11550"],["Sukabumi Selatan (Udik)","11560"],["Sukabumi Utara (Ilir)","11540"]],"Kembangan":[["Joglo","11640"],["Kembangan Selatan","11610"],["Kembangan Utara","11610"],["Meruya Selatan (Udik)","11650"],["Meruya Utara (Ilir)","11620"],["Srengseng","11630"]],"Palmerah":[["Jatipulo","11430"],["Kemanggisan","11480"],["Kota Bambu Selatan","11420"],["Kota Bambu Utara","11420"],["Palmerah","11480"],["Slipi","11410"]],"Taman Sari":[["Glodok","11120"],["Keagungan","11130"],["Krukut","11140"],["Mangga Besar","11180"],["Maphar","11160"],["Pinangsia","11110"],["Taman Sari","11150"],["Tangki","11170"]],"Tambora":[["Angke","11330"],["Duri Selatan","11270"],["Duri Utara","11270"],["Jembatan Besi","11320"],["Jembatan Lima","11250"],["Kali Anyar","11310"],["Krendang","11260"],["Pekojan","11240"],["Roa Malaka","11230"],["Tambora","11220"],["Tanah Sereal","11210"]],"Cengkareng":[["Cengkareng Barat","11730"],["Cengkareng Timur","11730"],["Duri Kosambi","11750"],["Kapuk","11720"],["Kedaung Kali Angke","11710"],["Rawa Buaya","11740"]]},"Kota Jakarta Selatan":{"Jagakarsa":[["Ciganjur","12630"],["Cipedak","12630"],["Jagakarsa","12620"],["Lenteng Agung","12630"],["Srengseng Sawah","12640"],["Tanjung Barat","12530"]],"Kebayoran Baru":[["Cipete Utara","12150"],["Gandaria Utara","12140"],["Gunung","12120"],["Kramat Pela","12130"],["Melawai","12160"],["Petogogan","12170"],["Pulo","12160"],["Rawa Barat","12180"],["Selong","12110"],["Senayan","12190"]],"Kebayoran Lama":[["Cipulir","12230"],["Grogol Selatan","12220"],["Grogol Utara","12210"],["Kebayoran Lama Selatan","12240"],["Kebayoran Lama Utara","12240"],["Pondok Pinang","12310"]],"Mampang Prapatan":[["Bangka","12730"],["Kuningan Barat","12710"],["Mampang Prapatan","12790"],["Pela Mampang","12720"],["Tegal Parang","12790"]],"Pancoran":[["Cikoko","12770"],["Duren Tiga","12760"],["Kalibata","12740"],["Pancoran","12780"],["Pengadegan","12770"],["Rawa Jati","12750"]],"Pasar Minggu":[["Cilandak Timur","12560"],["Jati Padang","12540"],["Kebagusan","12520"],["Pasar Minggu","12520"],["Pejaten Barat","12510"],["Pejaten Timur","12510"],["Ragunan","12550"]],"Pesanggrahan":[["Bintaro","12330"],["Pesanggrahan","12320"],["Petukangan Selatan","12270"],["Petukangan Utara","12260"],["Ulujami","12250"]],"Setia Budi":[["Guntur","12980"],["Karet","12920"],["Karet Kuningan","12940"],["Karet Semanggi","12930"],["Kuningan Timur","12950"],["Menteng Atas","12960"],["Pasar Manggis","12970"],["Setiabudi","12910"]],"Tebet":[["Bukit Duri","12840"],["Kebon Baru","12830"],["Manggarai","12850"],["Manggarai Selatan","12860"],["Menteng Dalam","12870"],["Tebet Barat","12810"],["Tebet Timur","12820"]],"Cilandak":[["Cilandak Barat","12430"],["Cipete Selatan","12410"],["Gandaria Selatan","12420"],["Lebak Bulus","12440"],["Pondok Labu","12450"]]},"Kota Jakarta Pusat":{"Cempaka Putih":[["Cempaka Putih Barat","10520"],["Cempaka Putih Timur","10510"],["Rawasari","10570"]],"Gambir":[["Cideng","10150"],["Duri Pulo","10140"],["Gambir","10110"],["Kebon Kelapa","10120"],["Petojo Selatan","10160"],["Petojo Utara","10130"]],"Johar Baru":[["Galur","10530"],["Johar Baru","10560"],["Kampung Rawa","10550"],["Tanah Tinggi","10540"]],"Kemayoran":[["Cempaka Baru","10640"],["Gunung Sahari Selatan","10610"],["Harapan Mulya","10640"],["Kebon Kosong","10630"],["Kemayoran","10620"],["Serdang","10650"],["Sumur Batu","10640"],["Utan Panjang","10650"]],"Menteng":[["Cikini","10330"],["Gondangdia","10350"],["Kebon Sirih","10340"],["Menteng","10310"],["Pegangsaan","10320"]],"Sawah Besar":[["Gunung Sahari Utara","10720"],["Karang Anyar","10740"],["Kartini","10750"],["Mangga Dua Selatan","10730"],["Pasar Baru","10710"]],"Senen":[["Bungur","10460"],["Kenari","10430"],["Kramat","10450"],["Kwitang","10420"],["Paseban","10440"],["Senen","10410"]],"Tanah Abang":[["Bendungan Hilir","10210"],["Gelora","10270"],["Kampung Bali","10250"],["Karet Tengsin","10220"],["Kebon Kacang","10240"],["Kebon Melati","10230"],["Petamburan","10260"]]},"Kota Jakarta Utara":{"Kelapa Gading":[["Kelapa Gading Barat","14240"],["Kelapa Gading Timur","14240"],["Pegangsaan Dua","14250"]],"Koja":[["Koja (Utara, Selatan)","14210"],["Koja Selatan","14220"],["Lagoa","14270"],["Rawa Badak Selatan","14230"],["Rawa Badak Utara","14230"],["Tugu Selatan","14260"],["Tugu Utara","14260"]],"Pademangan":[["Ancol","14430"],["Pademangan Barat","14420"],["Pademangan Timur","14410"]],"Penjaringan":[["Kamal Muara","14470"],["Kapuk Muara","14460"],["Pejagalan","14450"],["Penjaringan","14440"],["Pluit","14450"]],"Tanjung Priok":[["Kebon Bawang","14320"],["Papanggo","14340"],["Sungai Bambu","14330"],["Sunter Agung","14350"],["Sunter Jaya","14360"],["Tanjung Priok","14310"],["Warakas","14370"]],"Cilincing":[["Cilincing","14120"],["Kali Baru","14110"],["Marunda","14150"],["Rorotan","14140"],["Semper Barat","14130"],["Semper Timur","14130"],["Sukapura","14140"]]},"Kota Jakarta Timur":{"Cakung":[["Cakung Barat","13910"],["Cakung Timur","13910"],["Jatinegara","13930"],["Penggilingan","13940"],["Pulo Gebang","13950"],["Rawa Terate","13920"],["Ujung Menteng","13960"]],"Cipayung":[["Bambu Apus","13890"],["Ceger","13820"],["Cilangkap","13870"],["Cipayung","13840"],["Lubang Buaya","13810"],["Munjul","13850"],["Pondok Rangon","13860"],["Setu","13880"]],"Ciracas":[["Cibubur","13720"],["Ciracas","13740"],["Kelapa Dua Wetan","13730"],["Rambutan","13830"],["Susukan","13750"]],"Duren Sawit":[["Duren Sawit","13440"],["Klender","13470"],["Malaka Jaya","13460"],["Malaka Sari","13460"],["Pondok Bambu","13430"],["Pondok Kelapa","13450"],["Pondok Kopi","13460"]],"Jatinegara":[["Bali Mester","13310"],["Bidaracina","13330"],["Cipinang Besar Selatan","13410"],["Cipinang Besar Utara","13410"],["Cipinang Cempedak","13340"],["Cipinang Muara","13420"],["Kampung Melayu","13320"],["Rawa Bunga","13350"]],"Kramat Jati":[["Balekambang","13530"],["Batuampar","13520"],["Cawang","13630"],["Cililitan","13640"],["Dukuh","13550"],["Kampung Tengah","13540"],["Kramat Jati","13510"]],"Makasar":[["Cipinang Melayu","13620"],["Halim Perdana Kusumah","13610"],["Kebon Pala","13650"],["Makasar","13570"],["Pinang Ranti","13560"]],"Matraman":[["Kayu Manis","13130"],["Kebon Manggis","13150"],["Pal Meriam","13140"],["Pisangan Baru","13110"],["Utan Kayu Selatan","13120"],["Utan Kayu Utara","13120"]],"Pasar Rebo":[["Baru","13780"],["Cijantung","13770"],["Gedong","13760"],["Kalisari","13790"],["Pekayon","13710"]],"Pulo Gadung":[["Cipinang","13240"],["Jati","13220"],["Jatinegara Kaum","13250"],["Kayu Putih","13210"],["Pisangan Timur","13230"],["Pulo Gadung","13260"],["Rawamangun","13220"]]},"Kab. Kepulauan Seribu":{"Kepulauan Seribu Selatan":[["Pulau Pari","14520"],["Pulau Tidung","14520"],["Pulau Untung Jawa","14510"]],"Kepulauan Seribu Utara":[["Pulau Harapan","14540"],["Pulau Kelapa","14540"],["Pulau Panggang","14530"]]}}};
+const COLLIDE = ["Cilincing","Cipayung","Ciracas","Duren Sawit","Gambir","Jagakarsa","Jatinegara","Johar Baru","Kalideres","Kebon Jeruk","Kemayoran","Kramat Jati","Makasar","Mampang Prapatan","Menteng","Palmerah","Pancoran","Pasar Minggu","Penjaringan","Pesanggrahan","Pulo Gadung","Senen","Taman Sari","Tambora","Tanjung Priok"];
+
+/* ---------- icons ---------- */
+const I = {
+  chevD:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  chevU:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A5A5A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>',
+  chevL:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>',
+  back:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
+  x:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  lock:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A9A9A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  check:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  search:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9A9A9A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>',
+  ok:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1E874B" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><polyline points="20 6 9 17 4 12"/></svg>',
+  info:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8E8E8E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  warn:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C4122E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  warnS:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C4122E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  heart:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21.2l7.7-7.8 1.1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>',
+  cart:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>',
+  truck:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A5A5A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="13" height="11" rx="1"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/></svg>'
+};
+
+/* ---------- data helpers ---------- */
+const provs = () => Object.keys(AREA);
+const kotas = p => (p && AREA[p]) ? Object.keys(AREA[p]) : [];
+const kecs  = (p,k) => (p&&k&&AREA[p]&&AREA[p][k]) ? Object.keys(AREA[p][k]) : [];
+const kels  = (p,k,c) => (p&&k&&c&&AREA[p]&&AREA[p][k]&&AREA[p][k][c]) ? AREA[p][k][c] : [];
+function codesFor(p,k,c){
+  const m={},out=[];
+  kels(p,k,c).forEach(r=>{ if(!m[r[1]]){m[r[1]]=[];out.push(r[1]);} m[r[1]].push(r[0]); });
+  return out.sort().map(code=>({code,kel:m[code]}));
+}
+function lookupCode(code){
+  const hits=[];
+  for(const p of provs()) for(const k of kotas(p)) for(const c of kecs(p,k))
+    for(const r of kels(p,k,c)) if(r[1]===code) hits.push({prov:p,kota:k,kec:c,kel:r[0],code:r[1]});
+  return hits;
+}
+const esc = s => String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const nz = s => String(s||'').toLowerCase();
+
+/* ---------- state ---------- */
+const FRESH = () => ({
+  view:'form',
+  variant:'a',
+  f:{prov:'DKI Jakarta',kota:'Kota Jakarta Selatan',kec:'Jagakarsa',kel:'',kode:'',open:null,q:'',revFilter:null},
+  screen:'notif',
+  picker:null,
+  toast:null,
+  addrs:[
+    {id:1,name:'Ramadhana Bhanuharya Krishnamurti',phone:'+6282112255009',street:'Jalan Tanjung Blok F3 Nomor 1, Komplek Rancho Indah',
+     prov:'DKI Jakarta',kota:'Kota Jakarta Selatan',kec:'Jagakarsa',kel:'',kode:'',legacyKode:'12530',primary:true,
+     issue:'Kelurahan belum diisi dan kode pos tertulis dua kali'},
+    {id:2,name:'Wesley Theory',phone:'+6282112255009',street:'hehenull',
+     prov:'DKI Jakarta',kota:'Kota Jakarta Selatan',kec:'',kel:'',kode:'',legacyKode:'12530',primary:false,
+     issue:'Kecamatan dan Kelurahan belum diisi, kode pos 12530 tidak dapat diverifikasi'},
+    {id:3,name:'Faiq Yasmin',phone:'+82112255090',street:'Warteg Anjulo',
+     prov:'DKI Jakarta',kota:'Kota Jakarta Selatan',kec:'Jagakarsa',kel:'Tanjung Barat',kode:'12530',legacyKode:'12530',primary:false,issue:''}
+  ]
+});
+let S = FRESH();
+const bad = () => S.addrs.filter(a=>!a.kel);
+const set = p => { Object.assign(S,p); render(); };
+
+/* ---------- desktop address form ---------- */
+function formModal(){
+  const v=S.variant, f=S.f;
+  const kicker = v==='now' ? 'Kondisi saat ini' : (v==='a' ? 'Opsi A - kelurahan ditambahkan' : 'Opsi B - kode pos jadi dropdown');
+  let kode='';
+  if(v==='a'){ kels(f.prov,f.kota,f.kec).forEach(r=>{ if(r[0]===f.kel) kode=r[1]; }); }
+  else if(v==='b'){ kode=f.kode; }
+
+  const fld=(id,label,val,ph,enabled)=>`<div>
+    <div class="lbl${enabled?'':' off'}">${label}</div>
+    <button class="sel${enabled?'':' off'}" data-open="${id}" ${enabled?'':'disabled'}>
+      <span class="selv${val?'':' ph'}">${esc(val||ph)}</span>${I.chevD}</button></div>`;
+
+  let grid='', extra='';
+  if(v==='now'){
+    grid = `<div class="g2">
+      ${fld('','Provinsi*','DKI Jakarta','',false).replace('data-open=""','').replace(' off','').replace('class="sel off"','class="sel"')}
+      ${fld('','Kota/Kabupaten*','Kota Jakarta Selatan','',false).replace('data-open=""','').replace(' off','').replace('class="sel off"','class="sel"')}
+      ${fld('','Daerah*','Jagakarsa','',false).replace('data-open=""','').replace(' off','').replace('class="sel off"','class="sel"')}
+      <div><div class="lbl">Kode Pos*</div>
+        <div class="sel"><span class="selv">12530</span></div>
+        <div class="fh r">${I.warnS}<span>Diketik bebas. Tidak divalidasi terhadap Daerah yang dipilih.</span></div></div>
+    </div>`;
+  } else if(v==='a'){
+    grid = `<div class="g2">
+      ${fld('prov','Provinsi*',f.prov,'Pilih provinsi',true)}
+      ${fld('kota','Kota/Kabupaten*',f.kota,'Pilih kota/kabupaten',!!f.prov)}
+      ${fld('kec','Daerah (Kecamatan)*',f.kec,'Pilih daerah',!!f.kota)}
+      <div>${fld('kel','Kelurahan*',f.kel,'Pilih kelurahan',!!f.kec).replace(/^<div>|<\/div>$/g,'')}
+        <div class="fh n">${I.info}<span>Field baru. Menentukan kode pos.</span></div></div>
+    </div>`;
+    extra = `<div>
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px">
+        <div class="lbl" style="margin-bottom:0;flex-grow:1">Kode Pos*</div>
+        <button data-open="rev" style="border:none;background:none;padding:0;font-size:13px;font-weight:700;color:var(--red)">Cari dengan kode pos</button>
+      </div>
+      <div class="ro"><span class="rov" style="color:${kode?'#2B2B2B':'#B4B4B4'}">${kode||'-----'}</span>${I.lock}</div>
+      <div class="fh ${kode?'g':'n'}">${kode?I.ok:I.info}<span>${kode
+        ? 'Terisi otomatis dari Kelurahan '+esc(f.kel)+'. Cocok dengan data master RPX.'
+        : 'Pilih Kelurahan terlebih dahulu. Kode pos tidak dapat diketik.'}</span></div></div>`;
+  } else {
+    const cs=codesFor(f.prov,f.kota,f.kec);
+    let cov=[]; cs.forEach(c=>{ if(c.code===f.kode) cov=c.kel; });
+    grid = `<div class="g2">
+      ${fld('prov','Provinsi*',f.prov,'Pilih provinsi',true)}
+      ${fld('kota','Kota/Kabupaten*',f.kota,'Pilih kota/kabupaten',!!f.prov)}
+      ${fld('kec','Daerah*',f.kec,'Pilih daerah',!!f.kota)}
+      ${fld('kode','Kode Pos*',f.kode,'Pilih kode pos',!!f.kec)}
+    </div>
+    <div class="fh ${f.kode?'g':'n'}" style="margin-top:-6px">${f.kode?I.ok:I.info}<span>${f.kode
+      ? (cov.length>1
+          ? 'Kode pos '+esc(f.kode)+' valid untuk Kec. '+esc(f.kec)+'. Mencakup '+cov.length+' kelurahan: '+esc(cov.join(', '))+'.'
+          : 'Kode pos '+esc(f.kode)+' valid untuk Kec. '+esc(f.kec)+' (Kel. '+esc(cov[0])+').')
+      : 'Hanya kode pos milik Kec. '+esc(f.kec)+' yang dapat dipilih. '+cs.length+' kode tersedia.'}</span></div>`;
+  }
+
+  const area = v==='a'
+    ? (f.kel ? 'Kel. '+f.kel+', Kec. '+f.kec+', '+f.kota+', '+f.prov : (f.kec?'Kec. '+f.kec+', '+f.kota+', '+f.prov:f.kota+', '+f.prov))
+    : 'Kec. '+(f.kec||'Jagakarsa')+', '+(f.kota||'Kota Jakarta Selatan')+', Daerah Khusus Ibukota Jakarta';
+
+  return `<div class="modal">
+    <div class="mhdr"><button class="iconbtn">${I.chevL}</button><div class="mtitle">Update Address</div><button class="iconbtn">${I.x}</button></div>
+    <div class="mkicker">${kicker}</div>
+    <div class="mbody">
+      <div><div class="lbl">Alamat Lengkap*</div><div class="ta">Jalan Tanjung Blok F3 Nomor 1, Komplek Rancho Indah</div></div>
+      ${grid}${extra}
+      <div class="rule"></div>
+      <div style="display:flex;align-items:flex-start;gap:16px">
+        <div style="flex-grow:1">
+          <div class="locT">Lokasi Tepat</div>
+          <div class="locS">Tandai lokasi Anda untuk layanan kurir instan.</div>
+          <div class="locA">${esc(area)}</div>
+        </div>
+        <a href="#" onclick="return false" style="font-size:14px;font-weight:600;white-space:nowrap">Tandai Lokasi</a>
+      </div>
+      <div class="chkrow"><div class="chk">${I.check}</div><div style="font-size:14px">Jadikan alamat ini sebagai default</div></div>
+    </div>
+    <div class="mfoot"><button class="cta">Simpan Alamat</button></div>
+    ${f.open?formSheet():''}
+  </div>`;
+}
+
+function formSheet(){
+  const f=S.f, q=nz(f.q); let title='',ph='',opts=[];
+  if(f.open==='prov'){ title='Pilih Provinsi'; ph='Cari provinsi';
+    opts=provs().filter(v=>nz(v).includes(q)).map(v=>({label:v,sub:'',code:'',act:`prov|${v}`})); }
+  else if(f.open==='kota'){ title='Pilih Kota/Kabupaten'; ph='Cari kota atau kabupaten';
+    opts=kotas(f.prov).filter(v=>nz(v).includes(q)).map(v=>({label:v,sub:'',code:'',act:`kota|${v}`})); }
+  else if(f.open==='kec'){ title='Pilih Daerah (Kecamatan)'; ph='Cari kecamatan';
+    opts=kecs(f.prov,f.kota).filter(v=>nz(v).includes(q)).map(v=>({label:v,sub:'Kec. di '+f.kota,code:'',act:`kec|${v}`})); }
+  else if(f.open==='kel'){ title='Pilih Kelurahan'; ph='Cari kelurahan atau kode pos';
+    let rows=kels(f.prov,f.kota,f.kec);
+    if(f.revFilter) rows=rows.filter(r=>r[1]===f.revFilter);
+    opts=rows.filter(r=>nz(r[0]).includes(q)||r[1].includes(q)).map(r=>({
+      label:r[0], code:r[1],
+      sub: COLLIDE.includes(r[0]) ? 'Kelurahan di Kec. '+f.kec+' (nama ini juga dipakai sebagai kecamatan)' : '',
+      act:`kel|${r[0]}`})); }
+  else if(f.open==='kode'){ title='Pilih Kode Pos'; ph='Cari kode pos atau nama kelurahan';
+    opts=codesFor(f.prov,f.kota,f.kec).filter(c=>!q||c.code.includes(q)||c.kel.some(k=>nz(k).includes(q)))
+      .map(c=>({label:c.code,sub:'Meliputi '+c.kel.join(', '),code:'',act:`kode|${c.code}`})); }
+  else if(f.open==='rev'){ title='Cari dengan kode pos'; ph='Ketik 5 digit kode pos, misal 11460';
+    if(/^\d{3,5}$/.test(f.q)) opts=lookupCode(f.q).map(h=>({
+      label:h.kel, sub:'Kec. '+h.kec+', '+h.kota, code:h.code, act:`rev|${h.prov}~${h.kota}~${h.kec}~${h.kel}`})); }
+
+  return `<div class="sheet">
+    <div class="shdr"><div class="stitle">${title}</div><button class="iconbtn" data-close="1">${I.x}</button></div>
+    <div class="swrap"><div class="sic">${I.search}</div>
+      <input class="sinput" id="fq" value="${esc(f.q)}" placeholder="${esc(ph)}" autocomplete="off"></div>
+    <div class="slist">
+      ${opts.map(o=>`<button class="opt" data-pick="${esc(o.act)}">
+        <div style="flex-grow:1"><div class="optm">${esc(o.label)}</div>${o.sub?`<div class="opts">${esc(o.sub)}</div>`:''}</div>
+        ${o.code?`<div class="optc">${o.code}</div>`:''}</button>`).join('')}
+      ${opts.length?'':'<div class="sempty">Tidak ada hasil</div>'}
+    </div></div>`;
+}
+
+/* ---------- mobile screens ---------- */
+function phdr(title,right){ return `<div class="phdr"><div style="display:flex" data-nav="back">${I.back}</div><div class="pht">${title}</div>${right||''}</div>`; }
+
+function scrNotif(){
+  const n=bad().length;
+  const right=`<div style="display:flex;align-items:center;gap:20px">
+    <div style="position:relative;display:flex">${I.heart}<span class="badge">7</span></div>
+    <div style="position:relative;display:flex">${I.cart}<span class="badge">14</span></div></div>`;
+  const card = n>0 ? `<div class="alert">${I.warn}<div style="flex-grow:1">
+      <div class="aT">Alamat Pengiriman Perlu Diperbarui</div>
+      <div class="aB">${n} alamat di Buku Alamat kamu belum lengkap dan bisa membuat pesanan gagal dikirim. Perbarui sekarang, kamu hanya perlu memilih Kelurahan.</div>
+      <button class="pillbtn" style="margin-top:13px" data-nav="fix">Perbarui Alamat</button></div></div>`
+    : `<div class="card ok"><div style="display:flex;gap:11px;align-items:flex-start">${I.ok}
+      <div><div style="font-size:14.5px;font-weight:700;color:var(--ok)">Semua Alamat Sudah Diperbarui</div>
+      <div style="font-size:13px;color:#3F6B51;line-height:1.55;margin-top:5px">Terima kasih. Semua alamat di Buku Alamat kamu sudah lengkap dan siap dikirim.</div></div></div></div>`;
+  return `${phdr('Notifikasi',right)}
+    <div class="ptabs">
+      <button class="ptab">Transaksi</button><button class="ptab">Promo</button>
+      <button class="ptab">Obrolan</button><button class="ptab" aria-selected="true">Info</button>
+    </div>
+    <div class="pbody"><div style="padding:18px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:13px;font-weight:700">Agu 2026</div>
+      <div style="font-size:12px;color:var(--faint);margin-bottom:-6px">31 Agu 2026 09:15</div>
+      ${card}
+    </div></div>`;
+}
+
+function scrFix(){
+  const done=S.addrs.length-bad().length, tot=S.addrs.length;
+  const pct=Math.round(done/tot*100);
+  const rows=S.addrs.map(a=>{
+    const line=[a.street,a.kel?'Kel. '+a.kel:'',a.kec?'Kec. '+a.kec:'',a.kota].filter(Boolean).join(', ');
+    if(a.kel) return `<div class="card ok">
+      <div style="display:flex;align-items:center;gap:9px">${I.ok}
+        <span style="font-size:14.5px;font-weight:700;color:var(--ok);flex-grow:1">${esc(a.name)}</span></div>
+      <div style="font-size:13px;color:#3F6B51;line-height:1.55;margin-top:7px">${esc(line)}, ${a.kode}</div></div>`;
+    const miss = a.kec
+      ? 'Kelurahan belum diisi. Kec. '+a.kec+' memiliki '+kels(a.prov,a.kota,a.kec).length+' kelurahan.'
+      : 'Kecamatan dan Kelurahan belum diisi, jadi kode pos '+a.legacyKode+' tidak dapat diverifikasi.';
+    return `<div class="card">
+      <div style="font-size:14.5px;font-weight:700">${esc(a.name)}</div>
+      <div style="font-size:13px;color:var(--mut);line-height:1.55;margin-top:6px">${esc(line)}</div>
+      <div class="issue">${I.warnS}<span class="issueT">${esc(miss)}</span></div>
+      <button class="pillbtn full" style="margin-top:12px" data-fix="${a.id}">${a.kec?'Pilih Kelurahan':'Pilih Kecamatan'}</button></div>`;
+  }).join('');
+  return `${phdr('Perbaiki Alamat')}
+    <div class="pbody">
+      <div style="padding:18px">
+        <div style="font-size:15px;line-height:1.6">Kurir kami membutuhkan Kelurahan untuk menentukan kode pos yang benar. Tanpa itu, pesanan bisa tertahan atau gagal dikirim.</div>
+        <div style="display:flex;align-items:center;gap:11px;margin-top:18px">
+          <div class="bar"><div class="barf" style="width:${pct}%"></div></div>
+          <span style="font-size:13px;font-weight:700;color:var(--mut);white-space:nowrap">${done} dari ${tot} selesai</span></div>
+      </div>
+      <div style="padding:0 18px 24px;display:flex;flex-direction:column;gap:14px">${rows}</div>
+    </div>`;
+}
+
+function scrBook(){
+  const n=bad().length;
+  const banner = n? `<div style="padding:16px 18px 0"><div class="alert">${I.warn}<div>
+      <div class="aT">${n} dari ${S.addrs.length} alamat perlu diperbarui</div>
+      <div class="aB">Alamat tanpa Kelurahan tidak dapat diproses oleh kurir. Pilih Kelurahan untuk melengkapinya.</div></div></div></div>`:'';
+  const cards=S.addrs.map(a=>{
+    const line=a.kel
+      ? [a.street,'Kel. '+a.kel,'Kec. '+a.kec,a.kota,'DKI Jakarta',a.kode,'Indonesia'].join(', ')
+      : (a.id===1 ? a.street+', Jakarta Selatan, 12530, Kota Jakarta Selatan, DKI Jakarta, 12530, Indonesia'
+                  : a.street+', Kota Jakarta Selatan, DKI Jakarta, 12530, Indonesia');
+    const acts=(a.primary?['Ubah','Hapus']:['Ubah','Hapus','Jadikan Utama'])
+      .map(x=>`<a href="#" onclick="return false">${x}</a>`).join('<span class="sep">|</span>');
+    const body = a.kel
+      ? `<div class="okrow">${I.ok}<span class="okT">Alamat lengkap dan siap dikirim</span></div>`
+      : `<div class="issue">${I.warnS}<span class="issueT">${esc(a.issue)}</span></div>
+         <button class="pillbtn full" style="margin-top:11px" data-fix="${a.id}">Perbarui Alamat</button>`;
+    return `<div class="card${a.kel?'':' bad'}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex-grow:1"><span style="font-size:15px;font-weight:700">${esc(a.name)}</span>
+          <span class="sep" style="margin:0 7px">|</span><span style="font-size:13.5px;color:var(--mut)">${a.phone}</span></div>
+        ${a.primary?'<span class="chip">Utama</span>':''}</div>
+      <div style="font-size:13.5px;color:var(--mut);line-height:1.6;margin-top:8px">${esc(line)}</div>
+      ${body}<div class="acts">${acts}</div></div>`;
+  }).join('');
+  return `${phdr('Buku Alamat')}<div class="pbody">${banner}
+    <div style="padding:16px 18px 24px;display:flex;flex-direction:column;gap:14px">${cards}</div></div>`;
+}
+
+function scrCheckout(){
+  const a=S.addrs[0], okay=!!a.kel;
+  const line = okay
+    ? `${a.street}, Kel. ${a.kel}, Kec. ${a.kec}, ${a.kota}, ${a.kode}`
+    : `${a.street}, Jakarta Selatan, 12530, Jagak…`;
+  const addrCard = okay
+    ? `<div class="card"><div style="display:flex;align-items:flex-start;gap:10px"><div style="flex-grow:1">
+        <div style="font-size:14.5px;font-weight:700">${esc(a.name)}</div>
+        <div style="margin-top:5px"><span style="font-size:13px;color:var(--mut)">${a.phone}</span>
+          <span class="chip" style="margin-left:7px">Default</span></div>
+        <div style="font-size:13px;color:var(--mut);line-height:1.55;margin-top:7px">${esc(line)}</div></div>
+        <a href="#" onclick="return false" style="font-size:14px;font-weight:600">Ubah</a></div>
+        <div class="okrow">${I.ok}<span class="okT">Alamat terverifikasi untuk pengiriman</span></div></div>`
+    : `<div class="card bad" style="padding:0;overflow:hidden">
+        <div style="background:var(--alert-bg);padding:11px 15px;display:flex;gap:9px;align-items:flex-start;border-bottom:1px solid var(--alert-brd)">
+          ${I.warnS}<span style="font-size:12.5px;font-weight:700;color:var(--alert-tx);line-height:1.5">Alamat ini belum lengkap. Lengkapi Kelurahan agar pesanan dapat dikirim.</span></div>
+        <div style="padding:14px 15px">
+          <div style="font-size:14.5px;font-weight:700">${esc(a.name)}</div>
+          <div style="margin-top:5px"><span style="font-size:13px;color:var(--mut)">${a.phone}</span>
+            <span class="chip" style="margin-left:7px">Default</span></div>
+          <div style="font-size:13px;color:var(--mut);line-height:1.55;margin-top:7px">${esc(line)}</div>
+          <div style="display:flex;gap:10px;margin-top:13px">
+            <button class="pillbtn" style="flex-grow:1" data-fix="${a.id}">Lengkapi Alamat</button>
+            <button class="pillbtn outline" data-nav="book">Pilih Lain</button></div></div></div>`;
+  const radio=(on,label)=>`<div style="border:${on?'1.5px solid var(--red)':'1px solid var(--brd)'};background:${on?'var(--alert-bg)':'#fff'};border-radius:10px;height:50px;display:flex;align-items:center;justify-content:center;gap:9px">
+      <span style="width:18px;height:18px;border-radius:50%;border:2px solid ${on?'var(--red)':'#C8C8C8'};display:inline-flex;align-items:center;justify-content:center">${on?'<span style="width:9px;height:9px;border-radius:50%;background:var(--red)"></span>':''}</span>
+      <span style="font-size:14px;${on?'font-weight:600':'color:var(--mut)'}">${label}</span></div>`;
+  return `${phdr('Checkout')}
+    <div class="pbody">
+      <div style="padding:18px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px">
+          <div style="font-size:17px;font-weight:700;flex-grow:1">Pilih Alamat Pengiriman</div>${I.chevU}</div>
+        <div class="g2" style="gap:12px;margin-bottom:14px">${radio(true,'Pengiriman ke Rumah')}${radio(false,'Ambil di Toko')}</div>
+        ${addrCard}
+      </div>
+      <div class="grey"></div>
+      <div style="padding:18px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div style="font-size:17px;font-weight:700;flex-grow:1">Ringkasan Pesanan (1 Item)</div>${I.chevU}</div>
+        <div style="font-size:13.5px;font-weight:700;letter-spacing:.4px;margin-bottom:12px">MARKS &amp; SPENCER</div>
+        <div style="display:flex;gap:13px">
+          <div style="width:74px;height:88px;background:#EDEDED;border-radius:8px;flex-shrink:0"></div>
+          <div style="flex-grow:1">
+            <div style="font-size:12px;color:var(--mut)">MARKS &amp; SPENCER</div>
+            <div style="font-size:14.5px;margin-top:3px">Lace Bib Collared Shirt</div>
+            <div style="font-size:12.5px;color:var(--faint);margin-top:4px">UK 10/REG | Hitam</div>
+            <div style="display:flex;align-items:baseline;gap:9px;margin-top:7px">
+              <span style="font-size:12px;color:var(--mut)">1x</span>
+              <span style="font-size:15.5px;font-weight:700">Rp529.000</span></div></div></div>
+        <div style="border:1px solid ${okay?'var(--brd)':'#EFEFEF'};background:${okay?'#fff':'#FAFAFA'};border-radius:10px;height:50px;display:flex;align-items:center;gap:11px;padding:0 15px;margin-top:16px">
+          ${I.truck}<span style="font-size:14px;flex-grow:1;color:${okay?'var(--txt)':'var(--faint)'}">${okay?'RPX Regular - Rp18.000':'Metode Pengiriman'}</span>
+          <span style="transform:rotate(180deg)">${I.chevU}</span></div>
+        ${okay?'':'<div style="font-size:12px;color:var(--faint);margin-top:8px;padding-left:2px">Tersedia setelah alamat lengkap</div>'}
+      </div>
+    </div>
+    <div class="pfoot">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="flex-grow:1"><div style="font-size:13px;color:var(--mut)">Total Pembayaran</div>
+          <div style="font-size:19px;font-weight:700;margin-top:2px">Rp${okay?'547.000':'529.000'}</div></div>
+        <button class="cta" style="width:auto;height:52px;padding:0 34px;font-size:16px" ${okay?'':'disabled'}>Lanjut Bayar</button></div>
+      ${okay?'':'<div style="font-size:12px;color:var(--faint);text-align:right;margin-top:8px">Lengkapi alamat untuk melanjutkan</div>'}
+    </div>`;
+}
+
+/* picker sheet inside the phone */
+function pickerSheet(){
+  const p=S.picker; if(!p) return '';
+  const a=S.addrs.find(x=>x.id===p.id); const q=nz(p.q);
+  const stage = a.kec ? 'kel' : 'kec';
+  let title,ph,opts;
+  if(stage==='kec'){
+    title='Pilih Kecamatan'; ph='Cari kecamatan';
+    opts=kecs(a.prov,a.kota).filter(v=>nz(v).includes(q)).map(v=>({label:v,sub:'Kec. di '+a.kota,code:'',act:'pkec|'+v}));
+  } else {
+    title='Pilih Kelurahan'; ph='Cari kelurahan atau kode pos';
+    opts=kels(a.prov,a.kota,a.kec).filter(r=>nz(r[0]).includes(q)||r[1].includes(q)).map(r=>({
+      label:r[0], code:r[1],
+      sub: COLLIDE.includes(r[0]) ? 'Kelurahan di Kec. '+a.kec+' (nama ini juga dipakai sebagai kecamatan)' : '',
+      act:'pkel|'+r[0]}));
+  }
+  return `<div class="sheet p">
+    <div class="shdr"><div class="stitle">${title}</div><button class="iconbtn" data-pclose="1">${I.x}</button></div>
+    <div style="padding:0 26px 10px;font-size:12.5px;color:var(--mut);line-height:1.5">${esc(a.name)} &middot; ${esc(a.street)}</div>
+    <div class="swrap"><div class="sic">${I.search}</div>
+      <input class="sinput" id="pq" value="${esc(p.q)}" placeholder="${esc(ph)}" autocomplete="off"></div>
+    <div class="slist">
+      ${opts.map(o=>`<button class="opt" data-pick="${esc(o.act)}">
+        <div style="flex-grow:1"><div class="optm">${esc(o.label)}</div>${o.sub?`<div class="opts">${esc(o.sub)}</div>`:''}</div>
+        ${o.code?`<div class="optc">${o.code}</div>`:''}</button>`).join('')}
+      ${opts.length?'':'<div class="sempty">Tidak ada hasil</div>'}
+    </div></div>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected', t.dataset.view===S.view));
+  const root=document.getElementById('root');
+  if(S.view==='form'){
+    root.innerHTML = `
+      <div class="hint">Form alamat di web. Bandingkan kondisi sekarang dengan dua opsi perbaikan.
+        Dropdown memakai data master RPX (DKI Jakarta: 6 kota/kab, 44 kecamatan, 268 kelurahan).</div>
+      <div class="segrow">
+        <button class="seg" data-var="now" aria-pressed="${S.variant==='now'}">Sekarang</button>
+        <button class="seg" data-var="a" aria-pressed="${S.variant==='a'}">Opsi A - Kelurahan</button>
+        <button class="seg" data-var="b" aria-pressed="${S.variant==='b'}">Opsi B - Dropdown kode pos</button>
+      </div>
+      ${formModal()}
+      <div class="caption">${S.variant==='a'?'Coba: klik Kelurahan, atau "Cari dengan kode pos" lalu ketik 11460':S.variant==='b'?'Coba: pilih Daerah lalu Kode Pos':'Kode pos diketik bebas, tidak ada yang memvalidasi'}</div>`;
+  } else {
+    const screens={notif:scrNotif,fix:scrFix,book:scrBook,checkout:scrCheckout};
+    root.innerHTML = `
+      <div class="hint">Alur di aplikasi. Perbaiki alamat lewat notifikasi, lalu buka <b>Checkout</b> dan lihat blokirnya hilang.
+        Empat layar ini adalah empat lapis yang sama: dorong, perbaiki, simpan, cegah.</div>
+      <div class="navwrap">
+        ${[['notif','1. Notifikasi'],['fix','2. Perbaiki Alamat'],['book','3. Buku Alamat'],['checkout','4. Checkout']]
+          .map(([k,l])=>`<button class="seg" data-scr="${k}" aria-pressed="${S.screen===k}">${l}</button>`).join('')}
+      </div>
+      <div class="phonewrap"><div class="phone">${screens[S.screen]()}${pickerSheet()}
+        ${S.toast?`<div class="toast">${esc(S.toast)}</div>`:''}</div></div>
+      <div class="caption">${bad().length? bad().length+' alamat masih perlu diperbarui':'Semua alamat sudah lengkap'}</div>`;
+  }
+  const fq=document.getElementById('fq'); if(fq){ fq.focus(); fq.setSelectionRange(fq.value.length,fq.value.length); }
+  const pq=document.getElementById('pq'); if(pq){ pq.focus(); pq.setSelectionRange(pq.value.length,pq.value.length); }
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-view],[data-var],[data-scr],[data-open],[data-close],[data-pick],[data-nav],[data-fix],[data-pclose],#reset');
+  if(!t) return;
+  if(t.id==='reset'){ S=FRESH(); render(); return; }
+  if(t.dataset.view){ S.view=t.dataset.view; render(); return; }
+  if(t.dataset.var){ S.variant=t.dataset.var; S.f.open=null; S.f.q=''; render(); return; }
+  if(t.dataset.scr){ S.screen=t.dataset.scr; S.picker=null; S.toast=null; render(); return; }
+  if(t.dataset.open){ S.f.open=t.dataset.open; S.f.q=''; render(); return; }
+  if(t.dataset.close){ S.f.open=null; S.f.q=''; render(); return; }
+  if(t.dataset.pclose){ S.picker=null; render(); return; }
+  if(t.dataset.nav){
+    const n=t.dataset.nav;
+    if(n==='back') S.screen='notif'; else S.screen=n;
+    S.toast=null; render(); return;
+  }
+  if(t.dataset.fix){ S.picker={id:+t.dataset.fix,q:''}; S.toast=null; render(); return; }
+  if(t.dataset.pick){
+    const [kind,val]=t.dataset.pick.split('|');
+    const f=S.f;
+    if(kind==='prov'){ Object.assign(f,{prov:val,kota:'',kec:'',kel:'',kode:'',open:null,q:'',revFilter:null}); }
+    else if(kind==='kota'){ Object.assign(f,{kota:val,kec:'',kel:'',kode:'',open:null,q:'',revFilter:null}); }
+    else if(kind==='kec'){ Object.assign(f,{kec:val,kel:'',kode:'',open:null,q:'',revFilter:null}); }
+    else if(kind==='kel'){ Object.assign(f,{kel:val,open:null,q:'',revFilter:null}); }
+    else if(kind==='kode'){ Object.assign(f,{kode:val,open:null,q:''}); }
+    else if(kind==='rev'){ const [p,k,c,l]=val.split('~'); Object.assign(f,{prov:p,kota:k,kec:c,kel:l,open:null,q:'',revFilter:null}); }
+    else if(kind==='pkec'){ const a=S.addrs.find(x=>x.id===S.picker.id); a.kec=val; S.picker.q=''; }
+    else if(kind==='pkel'){
+      const a=S.addrs.find(x=>x.id===S.picker.id);
+      a.kel=val; kels(a.prov,a.kota,a.kec).forEach(r=>{ if(r[0]===val) a.kode=r[1]; });
+      S.picker=null; S.toast='Alamat diperbarui. Kode pos '+a.kode+' terisi otomatis.';
+      setTimeout(()=>{ S.toast=null; render(); },2600);
+    }
+    render(); return;
+  }
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='fq'){ S.f.q=e.target.value; render(); }
+  if(e.target.id==='pq'){ S.picker.q=e.target.value; render(); }
+});
+render();
+</script>
+</body>
+</html>
